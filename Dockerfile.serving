@@ -45,13 +45,15 @@ WORKDIR /code
 
 
 # TODO: add code, optionally a default model if you want 
-
+ENV WANDB_API_KEY=""
+ADD app.py /code/
 
 # TODO: install libs
+COPY requirements.txt /code/
+RUN pip install -r requirements.txt
 
 
 # TODO: expose ports (or do this in docker-compose)
-
 
 # TODO: specify default command - this is not required because you can always specify the command
 # either with the docker run command or in the docker-compose file
