@@ -46,10 +46,10 @@ WORKDIR /code
 
 # TODO: add code, optionally a default model if you want 
 ENV WANDB_API_KEY=""
-ADD app.py /code/
+ADD serving/app.py /code/
 
 # TODO: install libs
-COPY requirements.txt /code/
+COPY ift6758/requirements.txt /code/
 RUN pip install -r requirements.txt
 
 
