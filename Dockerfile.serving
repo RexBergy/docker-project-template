@@ -8,7 +8,7 @@
 
 # https://docs.docker.com/engine/reference/builder/#from
 # You shouldn't need to change this
-FROM python:3.7
+FROM python:3.12
 
 # https://docs.docker.com/engine/reference/builder/#workdir
 # Create and cd into /code as your working directory
@@ -51,6 +51,11 @@ ADD serving/app.py /code/
 COPY ift6758/requirements.txt /code/
 RUN pip install -r requirements.txt
 
+# Add the ift6758 module to the container
+ADD ift6758 /code/ift6758
+
+# Install the ift6758 module as a package
+RUN pip install -e /code/ift6758
 
 # TODO: expose ports (or do this in docker-compose)
 EXPOSE 5000

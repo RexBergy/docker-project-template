@@ -58,7 +58,6 @@ class ServingClient:
             model (str): The model in the Comet ML registry to download
             version (str): The model version to download
         """
-
         r = requests.post(
             f"{self.base_url}/download_registry_model",
             json=json.dumps(
@@ -68,4 +67,4 @@ class ServingClient:
             )
         )
 
-        return json.loads(r.json())
+        return r.json()

@@ -12,7 +12,8 @@ services:
     ports:
       - 5000:5000
     environment:
-      - WANDB_API_KEY=${WANDB_API_KEY}
+      - WANDB_API_KEY=08859681232b925438f842ca2c8a71be855aeb3c
+      - PYTHONUNBUFFERED=1
 ###### Uncomment below when you're ready to add the final notebook container to your docker compose
 ##  streamlit:
 ##    build:
