@@ -52,6 +52,10 @@ def before_first_request():
             logging.info("Loaded default model: default_model")
         else:
             print("wandb_init")
+            print(os.environ.get('WANDB_API_KEY'))
+
+            wandb.login(key=os.environ.get("WANDB_API_KEY"))
+            print("after login")
             wandb.init()
             logging.info("after init")
             model_artifact = wandb.use_artifact(f"philippe-bergeron-7-universit-de-montr-al-org/wandb-registry-model/Logistic regression:v4")
@@ -96,39 +100,15 @@ def logs():
 
 @app.route("/download_registry_model", methods=["POST"])
 def download_registry_model():
-    """
-    Handles POST requests made to http://IP_ADDRESS:PORT/download_registry_model
-
-    The comet API key should be retrieved from the ${COMET_API_KEY} environment variable.
-
-    Recommend (but not required) json with the schema:
-
-        {
-            workspace: (required),
-            model: (required),
-            version: (required),
-            ... (other fields if needed) ...
-        }
-    
-    """
-    # Get POST json data
+    #Get POST json data
     json_request = request.get_json()
     app.logger.info(f"Received request to download model: {json_request}")
 
     data = json.loads(json_request)
-    
+
     workspace = data.get("workspace")
     model_name = data.get("model")
     version = data.get("version")
-
-    # TODO: check to see if the model you are querying for is already downloaded
-
-    # TODO: if yes, load that model and write to the log about the model change.  
-    # eg: app.logger.info(<LOG STRING>)
-    
-    # TODO: if no, try downloading the model: if it succeeds, load that model and write to the log
-    # about the model change. If it fails, write to the log about the failure and keep the 
-    # currently loaded model
     wandb.init()
     model_artifact = wandb.use_artifact(f"{workspace}/{model_name}:v{version}")
     model_file_path = Path(model_artifact.file(root=str(MODEL_DIR)))
@@ -143,12 +123,7 @@ def download_registry_model():
             response = {"status": "success", "message": f"Loaded model {current_model_name}"}
         else:
             print("else download")
-            #wandb.init()
-            #model_artifact = wandb.use_artifact(f"{workspace}/{model_name}:v{version}")
-            #model_artifact.download(root=str(MODEL_DIR))
             model_artifact.download(root=str(MODEL_DIR))
-            
-            #print(file_path)
             wandb.finish()
 
             # Load the downloaded model
@@ -179,16 +154,19 @@ def predict():
 
     json_data = request.get_json()
     app.logger.info(f"Received prediction request: {json_data}")
-    data = pd.read_json(json_data)
-
+    data = pd.DataFrame(json_data)
+    print("data: ", data)
     try:
         # features = json_data.get("features")
         # if not features:
         #     abort(400, "Invalid request. 'features' are required.")
 
         # Assuming features are in a format suitable for the current model
+        print("test")
         predictions = current_model.predict(data)
+        print("test2")
         response = {"predictions": predictions.tolist()}
+        print("test3")
         #print(predictions[:10])
         app.logger.info(response)
         return jsonify(response) 

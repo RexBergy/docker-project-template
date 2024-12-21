@@ -30,8 +30,10 @@ class ServingClient:
         X = X[self.features]
         r = requests.post(
 	        f"{self.base_url}/predict", 
-	        json=X.to_json()
+	        json=X.to_json(orient='records')
         )
+        print("Server response status:", r.status_code)
+        print("Server response text:", r.text)
         return pd.read_json(r.json())
 
     def logs(self) -> dict:
