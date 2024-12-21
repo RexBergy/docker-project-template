@@ -13,7 +13,7 @@ class ServingClient:
         logger.info(f"Initializing client; base URL: {self.base_url}")
 
         if features is None:
-            features = ["distance"]
+            features = ["shotDistance"]
         self.features = features
 
         # any other potential initialization
@@ -27,14 +27,13 @@ class ServingClient:
         Args:
             X (Dataframe): Input dataframe to submit to the prediction service.
         """
-        X = X[self.features]
+        X = X[self.features].dropna()
+        json_payload = X.to_json(orient='records')
         r = requests.post(
 	        f"{self.base_url}/predict", 
-	        json=X.to_json(orient='records')
+	        json=json.loads(json_payload)
         )
-        print("Server response status:", r.status_code)
-        print("Server response text:", r.text)
-        return pd.read_json(r.json())
+        return r.json()
 
     def logs(self) -> dict:
         """Get server logs"""

@@ -13,7 +13,6 @@ from pathlib import Path
 import logging
 from flask import Flask, json, jsonify, request, abort
 import requests
-# import sklearn
 import pandas as pd
 import joblib
 import wandb
@@ -24,9 +23,6 @@ MODEL_DIR = Path("models")
 
 
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
-
-# current_model = None  
-# current_model_name = None
 
 app = Flask(__name__)
 
@@ -42,6 +38,7 @@ def before_first_request():
 
     global current_model
     global current_model_name
+
     try:
         if os.listdir(MODEL_DIR):
             default_model_path = MODEL_DIR / os.listdir(MODEL_DIR)[0]
@@ -57,16 +54,13 @@ def before_first_request():
             wandb.login(key=os.environ.get("WANDB_API_KEY"))
             print("after login")
             wandb.init()
-            logging.info("after init")
-            model_artifact = wandb.use_artifact(f"philippe-bergeron-7-universit-de-montr-al-org/wandb-registry-model/Logistic regression:v4")
-            logging.info("after artifact")
+            model_artifact = wandb.use_artifact(f"philippe-bergeron-7-universit-de-montr-al-org/wandb-registry-model/Logistic regression:v6")
             file_path = model_artifact.download(root=str(MODEL_DIR))
             print(file_path)
-            logging.info("after download")
             wandb.finish()
 
             # Load the downloaded model
-            model_file_path = MODEL_DIR / "logistic_regression_distance.pkl"
+            model_file_path = MODEL_DIR / "logistic_regression_distance1.pkl"
             logging.info(model_file_path)
             print("joblib_load", model_file_path)
             current_model = joblib.load(model_file_path)
@@ -76,10 +70,6 @@ def before_first_request():
             return response
     except Exception as e:
         logging.error(f"Failed to load default model: {e}")
-
-    
-
-
 
 @app.route("/logs", methods=["GET"])
 def logs():
@@ -101,6 +91,9 @@ def logs():
 @app.route("/download_registry_model", methods=["POST"])
 def download_registry_model():
     #Get POST json data
+    global current_model
+    global current_model_name
+
     json_request = request.get_json()
     app.logger.info(f"Received request to download model: {json_request}")
 
@@ -117,7 +110,7 @@ def download_registry_model():
         if model_file_path.exists():
             wandb.finish()
             app.logger.info(f"Model already exists: {model_file_path}. Loading model.")
-            global current_model, current_model_name
+            
             current_model = joblib.load(model_file_path)
             current_model_name = f"{model_name}_v{version}"
             response = {"status": "success", "message": f"Loaded model {current_model_name}"}
@@ -149,29 +142,19 @@ def predict():
     Returns predictions
     """
     # Get POST json data
-    # json = request.get_json()
-    # app.logger.info(json)
-
     json_data = request.get_json()
     app.logger.info(f"Received prediction request: {json_data}")
     data = pd.DataFrame(json_data)
-    print("data: ", data)
     try:
-        # features = json_data.get("features")
-        # if not features:
-        #     abort(400, "Invalid request. 'features' are required.")
-
         # Assuming features are in a format suitable for the current model
-        print("test")
         predictions = current_model.predict(data)
-        print("test2")
-        response = {"predictions": predictions.tolist()}
-        print("test3")
-        #print(predictions[:10])
+        probabilities = current_model.predict_proba(data)
+        response = {"predictions": predictions.tolist(), "probabilities": probabilities.tolist()}
         app.logger.info(response)
         return jsonify(response) 
     except Exception as e:
         logging.error(f"Prediction failed: {e}")
+        print("APP ERROR: ", e)
         response = {"status": "failure", "message": str(e)}
         return response
 

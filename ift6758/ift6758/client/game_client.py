@@ -13,7 +13,6 @@ class GameClient:
     def __init__(self, ip: str = "0.0.0.0", port: int = 5000):
         self.base_url = f"http://{ip}:{port}"
         logger.info(f"Initializing client; base URL: {self.base_url}")
-
         self.pointers = defaultdict(int)
         self.pointer = 0
 
@@ -22,9 +21,7 @@ class GameClient:
         response = requests.get(url)
         data = None
         if response.status_code == 200:
-
             data = response.json()
-
         else:
             print("Failed")
 
@@ -33,13 +30,15 @@ class GameClient:
         
         all_plays = data['plays']
         try:
+            print("GAME FILTER ID: ", game_id)
+            print(self.pointers[game_id])
             filtered_plays = all_plays[self.pointers[game_id]:]
             self.pointers[game_id] = len(all_plays)
 
             data['plays'] = filtered_plays
-
             return df_convert(data)
-        except:
+        except Exception as e:
+            print("Error:", e)
             return 
         
     def get_game_and_filter_from_json(self, json_game: str) -> pd.DataFrame:
@@ -222,7 +221,7 @@ def ing_period(df: pd.DataFrame) -> pd.DataFrame:
 def ing_event(df: pd.DataFrame, df_players: pd.DataFrame) -> pd.DataFrame:
     df_details = pd.DataFrame(df['details'].tolist())
 
-    df_details['shootingPlayerId'] = df_details['shootingPlayerId'].fillna(0) + df_details['scoringPlayerId'].fillna(0)
+    df_details['shootingPlayerId'] = df_details['shootingPlayerId'].fillna(0)
 
     df_details['goalieInNetId'] = df_details['goalieInNetId'].fillna(0)
 
