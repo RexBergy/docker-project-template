@@ -26,7 +26,7 @@ MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__)
 
-@app.before_request
+
 def before_first_request():
     """
     Hook to handle any initialization before the first request (e.g. load model,
@@ -40,29 +40,23 @@ def before_first_request():
     global current_model_name
 
     try:
-        if os.listdir(MODEL_DIR):
-            default_model_path = MODEL_DIR / os.listdir(MODEL_DIR)[0]
-            print("model_downloaded")
-            logging.info(default_model_path)
-            current_model = joblib.load(default_model_path)
+        model_file_path = MODEL_DIR / "logistic_regression_distance1.pkl"
+        if model_file_path.exists():
+            logging.info(model_file_path)
+            current_model = joblib.load(model_file_path)
             current_model_name = "default_model"
             logging.info("Loaded default model: default_model")
         else:
-            print("wandb_init")
-            print(os.environ.get('WANDB_API_KEY'))
 
             wandb.login(key=os.environ.get("WANDB_API_KEY"))
-            print("after login")
             wandb.init()
             model_artifact = wandb.use_artifact(f"philippe-bergeron-7-universit-de-montr-al-org/wandb-registry-model/Logistic regression:v6")
-            file_path = model_artifact.download(root=str(MODEL_DIR))
-            print(file_path)
+            model_artifact.download(root=str(MODEL_DIR))
             wandb.finish()
 
             # Load the downloaded model
-            model_file_path = MODEL_DIR / "logistic_regression_distance1.pkl"
+            
             logging.info(model_file_path)
-            print("joblib_load", model_file_path)
             current_model = joblib.load(model_file_path)
             current_model_name = f"Default model (Logistic Regression Distance)"
             app.logger.info(f"Downloaded and loaded model: {current_model_name}")
@@ -70,6 +64,8 @@ def before_first_request():
             return response
     except Exception as e:
         logging.error(f"Failed to load default model: {e}")
+
+before_first_request()
 
 @app.route("/logs", methods=["GET"])
 def logs():
@@ -115,7 +111,6 @@ def download_registry_model():
             current_model_name = f"{model_name}_v{version}"
             response = {"status": "success", "message": f"Loaded model {current_model_name}"}
         else:
-            print("else download")
             model_artifact.download(root=str(MODEL_DIR))
             wandb.finish()
 
@@ -154,7 +149,6 @@ def predict():
         return jsonify(response) 
     except Exception as e:
         logging.error(f"Prediction failed: {e}")
-        print("APP ERROR: ", e)
         response = {"status": "failure", "message": str(e)}
         return response
 

@@ -126,20 +126,18 @@ with st.container():
                 [st.session_state.play_by_play_data[current_game_id], new_plays], ignore_index=True
             )
         
-        # Compute xG values
-        play_by_play_data = st.session_state.play_by_play_data[current_game_id]
-        
-        # Extract the second value (index 1) from probabilities into a new column
-        play_by_play_data['probability'] = play_by_play_data['probability'].apply(lambda x: x[1])
-        
-        # Group by team and compute expected goals
-        expected_goals = (
-            play_by_play_data.groupby('eventOwnerTeam')['probability']
-            .apply(lambda probs: probs.sum())
-        )
-        print("Expected goals: ", expected_goals)
-        st.session_state.home_xg = expected_goals[expected_goals.index == st.session_state.home_team].values[0]
-        st.session_state.away_xg = expected_goals[expected_goals.index == st.session_state.away_team].values[0]
+            # Compute xG values
+            play_by_play_data = st.session_state.play_by_play_data[current_game_id]
+            
+            # Extract the second value (index 1) from probabilities into a new column
+            play_by_play_data['probability'] = play_by_play_data['probability'].apply(lambda x: x[1])
+            # Group by team and compute expected goals
+            expected_goals = (
+                play_by_play_data.groupby('eventOwnerTeam')['probability']
+                .apply(lambda probs: probs.sum())
+            )
+            st.session_state.home_xg = expected_goals[expected_goals.index == st.session_state.home_team].values[0]
+            st.session_state.away_xg = expected_goals[expected_goals.index == st.session_state.away_team].values[0]
 
         # Home team details
         with col1:
