@@ -28,11 +28,11 @@ if "home_team" not in st.session_state:
     st.session_state.ping_game_clicked = False
 
 # Set up IP address for clients
-ip = "127.0.0.1"
+ip = "serving"
 
 # Initialize ServingClient
 if "serving_client" not in st.session_state:
-    st.session_state.serving_client = ServingClient(ip)
+    st.session_state.serving_client = ServingClient(ip="serving")
 serving_client = st.session_state.serving_client
 
 # Initialize GameClient
