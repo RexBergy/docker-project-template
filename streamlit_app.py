@@ -94,10 +94,6 @@ with st.container():
                     st.session_state.period_time_remaining = game_data['clock']['timeRemaining']
                     st.session_state.home_score = game_data['homeTeam']['score']
                     st.session_state.away_score = game_data['awayTeam']['score']
-                    
-                    # Placeholder xG values
-                    st.session_state.home_xg = 3.2
-                    st.session_state.away_xg = 1.4
 
                     st.success("Game data fetched successfully!")
                 else:
@@ -116,10 +112,39 @@ with st.container():
         
         col1, col2 = st.columns(2)
 
+        # Fetch play-by-play probabilities
+        new_plays = game_client.get_game_and_filter(current_game_id)
+        if new_plays is not None:
+            features = ['shotDistance'] if model_version == "v6 (distance)" else ['shotDistance', 'shotAngle']
+            serving_client.features = features
+
+            pred_and_prob = serving_client.predict(new_plays)
+            new_plays['probability'] = pred_and_prob['probabilities']
+
+            # Update play_by_play dataframe for the current game
+            st.session_state.play_by_play_data[current_game_id] = pd.concat(
+                [st.session_state.play_by_play_data[current_game_id], new_plays], ignore_index=True
+            )
+        
+        # Compute xG values
+        play_by_play_data = st.session_state.play_by_play_data[current_game_id]
+        
+        # Extract the second value (index 1) from probabilities into a new column
+        play_by_play_data['probability'] = play_by_play_data['probability'].apply(lambda x: x[1])
+        
+        # Group by team and compute expected goals
+        expected_goals = (
+            play_by_play_data.groupby('eventOwnerTeam')['probability']
+            .apply(lambda probs: probs.sum())
+        )
+        print("Expected goals: ", expected_goals)
+        st.session_state.home_xg = expected_goals[expected_goals.index == st.session_state.home_team].values[0]
+        st.session_state.away_xg = expected_goals[expected_goals.index == st.session_state.away_team].values[0]
+
         # Home team details
         with col1:
             st.subheader(f"{st.session_state.home_team} xG (Actual)")
-            st.write(f"**{st.session_state.home_xg} ({st.session_state.home_score})**")
+            st.write(f"**{st.session_state.home_xg:.1f} ({st.session_state.home_score})**")
             diff_home = st.session_state.home_xg - st.session_state.home_score
             arrow_home = "↑" if diff_home > 0 else "↓"
             color_home = "green" if diff_home > 0 else "red"
@@ -128,25 +153,11 @@ with st.container():
         # Away team details
         with col2:
             st.subheader(f"{st.session_state.away_team} xG (Actual)")
-            st.write(f"**{st.session_state.away_xg} ({st.session_state.away_score})**")
+            st.write(f"**{st.session_state.away_xg:.1f} ({st.session_state.away_score})**")
             diff_away = st.session_state.away_xg - st.session_state.away_score
             arrow_away = "↑" if diff_away > 0 else "↓"
             color_away = "green" if diff_away > 0 else "red"
             st.markdown(f"<span style='color:{color_away}; font-size:1.5em;'>{arrow_away}</span> **{abs(diff_away):.1f}**", unsafe_allow_html=True)
-
-        # Fetch play-by-play probabilities
-        new_plays = game_client.get_game_and_filter(current_game_id)
-        if new_plays is not None:
-            features = ['shotDistance'] if model_version == "v6 (distance)" else ['shotDistance', 'shotAngle']
-            serving_client.features = features
-
-            pred_and_prob = serving_client.predict(new_plays)
-            new_plays['probabilities'] = pred_and_prob['probabilities']
-
-            # Update play_by_play dataframe for the current game
-            st.session_state.play_by_play_data[current_game_id] = pd.concat(
-                [st.session_state.play_by_play_data[current_game_id], new_plays], ignore_index=True
-            )
 
         # Display play_by_play data for the current game
         st.dataframe(st.session_state.play_by_play_data[current_game_id])
